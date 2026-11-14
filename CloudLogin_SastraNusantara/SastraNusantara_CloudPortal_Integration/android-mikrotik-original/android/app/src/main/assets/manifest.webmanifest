@@ -1,0 +1,9 @@
+{
+  "name": "MAMANG KONEKSI MIKROTIK MANAGER",
+  "short_name": "Mamang MikroTik",
+  "start_url": "./",
+  "display": "standalone",
+  "background_color": "#0b1220",
+  "theme_color": "#101827",
+  "description": "RouterOS script generator toolkit"
+}
