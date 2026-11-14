@@ -1,0 +1,66 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10213d">
+<title>Sastra Nusantara | Portal Aplikasi</title>
+<link rel="stylesheet" href="shared/portal.css">
+<script src="shared/cloud-config.js"></script>
+<script src="shared/cloud-auth.js"></script>
+</head>
+<body>
+<main class="shell">
+  <header class="brand"><div class="mark">SN</div><div><b>SASTRA NUSANTARA</b><small>INTEGRATED APPLICATION PORTAL</small></div></header>
+  <section id="loginPanel" class="panel login">
+    <div class="eyebrow">SECURE CLOUD ACCESS</div><h1>Selamat datang</h1>
+    <p>Masuk satu kali untuk membuka aplikasi Billing dan MikroTik Manager.</p>
+    <form id="loginForm">
+      <label for="email">Email akun</label><input id="email" type="email" autocomplete="username" required placeholder="nama@email.com">
+      <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required placeholder="Password akun">
+      <button id="loginBtn" type="submit">Masuk ke Portal</button>
+      <p id="error" class="error" role="alert"></p>
+    </form>
+    <small class="muted">Akun dibuat oleh administrator melalui Supabase. Pendaftaran publik tidak diaktifkan.</small>
+  </section>
+  <section id="dashboard" class="panel dashboard" hidden>
+    <div class="welcome"><div><div class="eyebrow">WORKSPACE</div><h1 id="welcomeName">Dashboard</h1><p id="roleLabel"></p></div><button id="logoutBtn" class="outline">Keluar</button></div>
+    <div class="apps">
+      <a id="billingLink" class="app-card" href="billing/"><span class="app-icon green">▣</span><b>Billing Sastra Nusantara Ku</b><small>Kelola pelanggan, paket, pembayaran, dan laporan.</small><span class="open">Buka aplikasi →</span></a>
+      <a id="mikrotikLink" class="app-card" href="mikrotik/"><span class="app-icon blue">⌁</span><b>Mamang Koneksi MikroTik Manager</b><small>Generator script RouterOS v6/v7 dan toolkit jaringan.</small><span class="open">Buka aplikasi →</span></a>
+    </div>
+    <p class="muted">Sesi login cloud dipakai bersama oleh modul pada domain yang sama.</p>
+  </section>
+  <footer>© 2026 Sastra Nusantara · Created by Tawab Hidayat</footer>
+</main>
+<script>
+(async function(){
+ const $=id=>document.getElementById(id);
+ function showError(msg){$("error").textContent=msg;}
+ function render(state){
+   $("loginPanel").hidden=true; $("dashboard").hidden=false;
+   $("welcomeName").textContent="Halo, "+(state.profile.display_name||state.user.email||"Pengguna");
+   $("roleLabel").textContent="Role: "+state.profile.role;
+   $("billingLink").hidden=!state.profile.billing_access;
+   $("mikrotikLink").hidden=!state.profile.mikrotik_access;
+ }
+ try {
+   const state=await SNCloudAuth.current();
+   if(state) render(state);
+ } catch(e) { showError(e.message||"Gagal memeriksa sesi."); }
+ $("loginForm").addEventListener("submit",async e=>{
+   e.preventDefault(); $("loginBtn").disabled=true; $("loginBtn").textContent="Memeriksa...";
+   showError("");
+   try {
+     const state=await SNCloudAuth.signIn($("email").value.trim(),$("password").value);
+     render(state);
+   } catch(err) { showError(err.message||"Login gagal. Periksa email dan password."); }
+   finally {$("loginBtn").disabled=false;$("loginBtn").textContent="Masuk ke Portal";}
+ });
+ $("logoutBtn").addEventListener("click",async()=>{
+   $("logoutBtn").disabled=true;
+   try { await SNCloudAuth.signOut(); location.reload(); }
+   catch(e) { showError(e.message||"Gagal keluar."); $("logoutBtn").disabled=false; }
+ });
+})();
+</script>
+</body></html>
