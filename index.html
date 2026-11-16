@@ -1,0 +1,60 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#10213d">
+<title>Sastra Nusantara | Portal Aplikasi</title>
+<link rel="stylesheet" href="shared/portal.css">
+<script src="shared/cloud-config.js"></script><script src="shared/cloud-auth.js"></script>
+</head>
+<body><main class="shell">
+<header class="brand"><div class="mark">SN</div><div><b>SASTRA NUSANTARA</b><small>INTEGRATED APPLICATION PORTAL</small></div></header>
+<section id="loginPanel" class="panel login">
+ <div class="eyebrow">SECURE CLOUD ACCESS</div><h1>Selamat datang</h1>
+ <p>Masuk satu kali untuk membuka aplikasi Billing dan MikroTik Manager.</p>
+ <form id="loginForm"><label for="email">Email akun</label><input id="email" type="email" autocomplete="username" required placeholder="nama@email.com">
+ <label for="password">Password</label><input id="password" type="password" autocomplete="current-password" required placeholder="Password akun">
+ <button id="loginBtn" type="submit">Masuk ke Portal</button><p id="loginError" class="error" role="alert"></p></form>
+ <div class="auth-links"><button type="button" class="link-btn" id="showRegister">Buat akun baru</button><button type="button" class="link-btn" id="forgotBtn">Lupa password?</button><button type="button" class="link-btn" id="resendConfirmBtn" hidden>Kirim ulang email konfirmasi</button></div>
+ <small class="muted">Pendaftaran terbuka. Akun baru menunggu persetujuan administrator sebelum dapat mengakses aplikasi.</small>
+</section>
+<section id="registerPanel" class="panel login" hidden>
+ <div class="eyebrow">PUBLIC REGISTRATION</div><h1>Buat akun</h1><p>Daftarkan akun SASTRA NUSANTARA. Akses aplikasi akan aktif setelah disetujui administrator.</p>
+ <form id="registerForm"><label for="regName">Nama lengkap</label><input id="regName" required maxlength="80" placeholder="Nama Anda">
+ <label for="regEmail">Email</label><input id="regEmail" type="email" required autocomplete="email" placeholder="nama@email.com">
+ <label for="regPassword">Password (minimal 8 karakter)</label><input id="regPassword" type="password" minlength="8" required autocomplete="new-password" placeholder="Buat password">
+ <button id="registerBtn" type="submit">Daftar Akun</button><p id="registerError" class="error" role="alert"></p></form>
+ <button type="button" class="link-btn" id="backLogin">Kembali ke login</button>
+</section>
+<section id="dashboard" class="panel dashboard" hidden>
+ <div class="welcome"><div><div class="eyebrow">WORKSPACE</div><h1 id="welcomeName">Dashboard</h1><p id="roleLabel"></p></div><button id="logoutBtn" class="outline">Keluar</button></div>
+ <div class="apps"><a id="billingLink" class="app-card" href="billing/"><span class="app-icon green">▣</span><b>Billing Sastra Nusantara Ku</b><small>Kelola pelanggan, paket, pembayaran, dan laporan.</small><span class="open">Buka aplikasi →</span></a>
+ <a id="mikrotikLink" class="app-card" href="mikrotik/"><span class="app-icon blue">⌁</span><b>Mamang Koneksi MikroTik Manager</b><small>Generator script RouterOS v6/v7 dan toolkit jaringan.</small><span class="open">Buka aplikasi →</span></a></div>
+ <section id="adminPanel" class="admin-panel" hidden><div class="admin-head"><div><div class="eyebrow">ADMINISTRATION</div><h2>Manajemen Akun</h2><p>Kelola status, role, dan hak akses aplikasi pengguna.</p></div><button id="refreshUsers" class="outline" type="button">Muat ulang</button></div>
+ <p id="adminMessage" class="muted" role="status"></p><div class="table-wrap"><table><thead><tr><th>Pengguna</th><th>Role</th><th>Akses</th><th>Status</th><th>Aksi</th></tr></thead><tbody id="userRows"><tr><td colspan="5">Memuat data...</td></tr></tbody></table></div></section>
+ <p class="muted">Sesi login cloud dipakai bersama oleh modul pada domain yang sama.</p>
+</section><footer>© 2026 Sastra Nusantara · Integrated Application Portal</footer></main>
+<script>
+(async function(){
+ const $=id=>document.getElementById(id);
+ const panels=['loginPanel','registerPanel','dashboard'];
+ function show(id){panels.forEach(x=>$(x).hidden=x!==id);}
+ function msg(id,text){$(id).textContent=text||'';}
+ function render(state){show('dashboard');$('welcomeName').textContent='Halo, '+(state.profile.display_name||state.user.email||'Pengguna');$('roleLabel').textContent='Role: '+state.profile.role;
+ $('billingLink').hidden=!state.profile.billing_access;$('mikrotikLink').hidden=!state.profile.mikrotik_access;
+ $('adminPanel').hidden=state.profile.role!=='super_admin';
+ if(!$('adminPanel').hidden) loadUsers();}
+ $('showRegister').onclick=()=>show('registerPanel');$('backLogin').onclick=()=>show('loginPanel');
+ $('resendConfirmBtn').onclick=async()=>{const email=$('email').value.trim();if(!email){msg('loginError','Masukkan email yang didaftarkan terlebih dahulu.');return;}const b=$('resendConfirmBtn');b.disabled=true;try{await SNCloudAuth.resendSignupConfirmation(email);msg('loginError','Permintaan email konfirmasi diproses. Periksa kotak masuk, folder Spam, dan Promotions.');}catch(e){msg('loginError',e.message||'Gagal mengirim ulang email konfirmasi.');}finally{b.disabled=false;}};
+ $('forgotBtn').onclick=async()=>{const email=$('email').value.trim();if(!email){msg('loginError','Masukkan email pada kolom Email akun terlebih dahulu.');return;}try{await SNCloudAuth.resetPassword(email);msg('loginError','Jika email terdaftar, tautan reset password akan dikirim. Periksa kotak masuk dan spam.');}catch(e){msg('loginError',e.message||'Gagal mengirim email reset.');}};
+ $('loginForm').addEventListener('submit',async e=>{e.preventDefault();$('loginBtn').disabled=true;$('loginBtn').textContent='Memeriksa...';msg('loginError','');try{render(await SNCloudAuth.signIn($('email').value.trim(),$('password').value));}catch(err){msg('loginError',err.message||'Login gagal. Periksa email dan password.');}finally{$('loginBtn').disabled=false;$('loginBtn').textContent='Masuk ke Portal';}});
+ $('registerForm').addEventListener('submit',async e=>{e.preventDefault();$('registerBtn').disabled=true;$('registerBtn').textContent='Mendaftarkan...';msg('registerError','');try{const result=await SNCloudAuth.signUp($('regEmail').value.trim(),$('regPassword').value,$('regName').value.trim());show('loginPanel');$('email').value=$('regEmail').value.trim();$('resendConfirmBtn').hidden=!!result.session;msg('loginError',result.session?'Pendaftaran berhasil. Akun menunggu persetujuan administrator.':'Pendaftaran diterima. Buka email konfirmasi yang dikirim Supabase. Jika belum masuk, gunakan tombol Kirim ulang email konfirmasi. Setelah verifikasi, akun tetap menunggu persetujuan administrator.');}catch(err){msg('registerError',err.message||'Pendaftaran gagal.');}finally{$('registerBtn').disabled=false;$('registerBtn').textContent='Daftar Akun';}});
+ async function loadUsers(){const body=$('userRows');body.innerHTML='<tr><td colspan="5">Memuat data...</td></tr>';msg('adminMessage','');try{const users=await SNCloudAuth.adminListProfiles();body.innerHTML='';if(!users.length){body.innerHTML='<tr><td colspan="5">Belum ada pengguna.</td></tr>';return;}users.forEach(u=>{const tr=document.createElement('tr');const name=document.createElement('td');name.innerHTML='<strong></strong><small></small>';name.querySelector('strong').textContent=u.display_name||'Tanpa nama';name.querySelector('small').textContent=u.email||u.user_id;const role=document.createElement('td');const sel=document.createElement('select');['staff','cashier','technician','noc','admin','super_admin'].forEach(r=>{const o=document.createElement('option');o.value=r;o.textContent=r;o.selected=u.role===r;sel.append(o);});role.append(sel);
+ const access=document.createElement('td');const b=document.createElement('label');b.className='checkline';const cb1=document.createElement('input');cb1.type='checkbox';cb1.checked=!!u.billing_access;b.append(cb1,document.createTextNode(' Billing'));const m=document.createElement('label');m.className='checkline';const cb2=document.createElement('input');cb2.type='checkbox';cb2.checked=!!u.mikrotik_access;m.append(cb2,document.createTextNode(' MikroTik'));access.append(b,m);
+ const status=document.createElement('td');const active=document.createElement('label');active.className='checkline';const cb3=document.createElement('input');cb3.type='checkbox';cb3.checked=!!u.is_active;active.append(cb3,document.createTextNode(u.is_active?' Aktif':' Menunggu/Nonaktif'));cb3.onchange=()=>active.lastChild.textContent=cb3.checked?' Aktif':' Menunggu/Nonaktif';status.append(active);
+ const action=document.createElement('td');const save=document.createElement('button');save.className='save-btn';save.textContent='Simpan';save.onclick=async()=>{save.disabled=true;try{await SNCloudAuth.adminUpdateProfile({user_id:u.user_id,display_name:u.display_name,role:sel.value,billing_access:cb1.checked,mikrotik_access:cb2.checked,is_active:cb3.checked});msg('adminMessage','Perubahan akun '+(u.display_name||u.email||'pengguna')+' berhasil disimpan.');}catch(e){msg('adminMessage',e.message||'Gagal menyimpan perubahan.');}finally{save.disabled=false;}};action.append(save);tr.append(name,role,access,status,action);body.append(tr);});}catch(e){body.innerHTML='<tr><td colspan="5">Tidak dapat memuat akun.</td></tr>';msg('adminMessage',e.message||'Pastikan migration terbaru sudah dijalankan.');}}
+ $('refreshUsers').onclick=loadUsers;
+ $('logoutBtn').onclick=async()=>{ $('logoutBtn').disabled=true;try{await SNCloudAuth.signOut();location.reload();}catch(e){msg('adminMessage',e.message||'Gagal keluar.');$('logoutBtn').disabled=false;}};
+ try{const state=await SNCloudAuth.current();if(state){if(state.profile.is_active){render(state);}else{await SNCloudAuth.signOut();$('email').value=state.user.email||'';$('resendConfirmBtn').hidden=false;msg('loginError','Email sudah terverifikasi. Akun Anda masih menunggu persetujuan Super Admin sebelum aplikasi dapat dibuka.');}}}catch(e){msg('loginError',e.message||'Gagal memeriksa sesi.');}
+})();
+</script></body></html>
